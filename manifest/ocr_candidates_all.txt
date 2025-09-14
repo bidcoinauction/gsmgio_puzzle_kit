@@ -1,0 +1,15 @@
+sting: 2
+bar: 2
+spring: 1
+toe: 1
+snake: 1
+welcome: 1
+add: 1
+scan: 1
+wise: 1
+earn: 1
+define: 1
+life: 1
+state: 1
+man: 1
+put: 1

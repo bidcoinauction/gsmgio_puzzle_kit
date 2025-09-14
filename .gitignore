@@ -1,0 +1,35 @@
+# Large files that exceed GitHub limits
+manifest.zip
+manifest/final_candidates.txt
+manifest/decoded_attempts/*.rot13*
+manifest/decoded_attempts/*salphaseion_decrypted*
+final_candidates.txt
+decoded_attempts/*.rot13*
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+venv/
+.venv/
+env/
+pip-log.txt
+pip-delete-this-directory.txt
+.tox/
+.coverage
+.pytest_cache/
+*.egg-info/
+dist/
+build/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
