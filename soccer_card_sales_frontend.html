@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Soccer Card Sales Finder</title>
+    <style>
+      :root {
+        color-scheme: light;
+        font-family: "Inter", "Segoe UI", system-ui, sans-serif;
+        background: #f8f9fb;
+        color: #1f2933;
+      }
+      body {
+        margin: 0;
+        padding: 32px;
+      }
+      .container {
+        max-width: 1100px;
+        margin: 0 auto;
+        background: #ffffff;
+        border-radius: 16px;
+        padding: 28px;
+        box-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
+      }
+      header {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-bottom: 24px;
+      }
+      h1 {
+        margin: 0;
+        font-size: 28px;
+      }
+      p {
+        margin: 0;
+        color: #52616b;
+      }
+      form {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 16px;
+        align-items: end;
+        margin-bottom: 24px;
+      }
+      label {
+        display: block;
+        font-size: 13px;
+        margin-bottom: 6px;
+        color: #52616b;
+      }
+      input {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid #d9dde3;
+        border-radius: 10px;
+        font-size: 14px;
+      }
+      button {
+        padding: 12px 16px;
+        border: none;
+        border-radius: 12px;
+        background: #2563eb;
+        color: #ffffff;
+        font-size: 14px;
+        cursor: pointer;
+      }
+      button.secondary {
+        background: #eef2f8;
+        color: #1f2933;
+      }
+      .status {
+        margin-bottom: 18px;
+        font-size: 14px;
+        color: #1f2933;
+      }
+      .table-wrapper {
+        overflow-x: auto;
+        border: 1px solid #e6eaf0;
+        border-radius: 12px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      th,
+      td {
+        padding: 12px 14px;
+        text-align: left;
+        border-bottom: 1px solid #e6eaf0;
+        font-size: 13px;
+      }
+      th {
+        background: #f5f7fb;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: #52616b;
+      }
+      tbody tr:hover {
+        background: #f8fafc;
+      }
+      .actions {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+      .note {
+        margin-top: 16px;
+        font-size: 12px;
+        color: #6b7280;
+      }
+      a {
+        color: #2563eb;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <h1>Soccer Card Sales Finder</h1>
+        <p>Search completed eBay listings and review finalized sale prices for specific players or sets.</p>
+      </header>
+
+      <form id="search-form">
+        <div>
+          <label for="query">Player / Card Query</label>
+          <input id="query" name="query" type="text" value="Lionel Messi rookie" />
+        </div>
+        <div>
+          <label for="pages">Pages to scrape (1-10)</label>
+          <input id="pages" name="pages" type="number" min="1" max="10" value="1" />
+        </div>
+        <div>
+          <label for="delay">Delay between pages (seconds)</label>
+          <input id="delay" name="delay" type="number" min="0" max="10" step="0.5" value="1" />
+        </div>
+        <div class="actions">
+          <button type="submit">Search Sold Listings</button>
+          <button type="button" class="secondary" id="download">Download CSV</button>
+        </div>
+      </form>
+
+      <div class="status" id="status">Enter a player or card query to begin.</div>
+
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Title</th>
+              <th>Price</th>
+              <th>Shipping</th>
+              <th>Total</th>
+              <th>Sold Date</th>
+              <th>Listing</th>
+            </tr>
+          </thead>
+          <tbody id="results"></tbody>
+        </table>
+      </div>
+
+      <div class="note">
+        Results are pulled from completed/sold eBay listings. Larger page counts may take longer to load.
+      </div>
+    </div>
+
+    <script>
+      const form = document.getElementById("search-form");
+      const statusEl = document.getElementById("status");
+      const resultsBody = document.getElementById("results");
+      const downloadButton = document.getElementById("download");
+
+      let latestResults = [];
+
+      function setStatus(message) {
+        statusEl.textContent = message;
+      }
+
+      function renderResults(listings) {
+        resultsBody.innerHTML = "";
+        listings.forEach((listing) => {
+          const row = document.createElement("tr");
+          row.innerHTML = `
+            <td>${listing.title}</td>
+            <td>${listing.price ?? ""}</td>
+            <td>${listing.shipping ?? ""}</td>
+            <td>${listing.total ?? ""}</td>
+            <td>${listing.sold_date ?? ""}</td>
+            <td><a href="${listing.url}" target="_blank" rel="noreferrer">View</a></td>
+          `;
+          resultsBody.appendChild(row);
+        });
+      }
+
+      function downloadCSV() {
+        if (!latestResults.length) {
+          setStatus("Run a search before downloading CSV.");
+          return;
+        }
+        const headers = ["title", "price", "shipping", "total", "sold_date", "url"];
+        const rows = [headers.join(",")].concat(
+          latestResults.map((listing) =>
+            headers
+              .map((key) => `"${String(listing[key] ?? "").replace(/"/g, '""')}"`)
+              .join(",")
+          )
+        );
+        const blob = new Blob([rows.join("\n")], { type: "text/csv" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = "soccer_card_sales.csv";
+        link.click();
+        URL.revokeObjectURL(url);
+      }
+
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const query = document.getElementById("query").value.trim();
+        const pages = document.getElementById("pages").value;
+        const delay = document.getElementById("delay").value;
+
+        setStatus("Loading sold listings...");
+        resultsBody.innerHTML = "";
+        latestResults = [];
+
+        try {
+          const response = await fetch(
+            `/api/search?query=${encodeURIComponent(query)}&pages=${encodeURIComponent(
+              pages
+            )}&delay=${encodeURIComponent(delay)}`
+          );
+          if (!response.ok) {
+            throw new Error(`Request failed (${response.status})`);
+          }
+          const data = await response.json();
+          latestResults = data.listings ?? [];
+          renderResults(latestResults);
+          setStatus(`Loaded ${data.count} listings for "${data.query}".`);
+        } catch (error) {
+          setStatus(`Error: ${error.message}`);
+        }
+      });
+
+      downloadButton.addEventListener("click", downloadCSV);
+    </script>
+  </body>
+</html>
